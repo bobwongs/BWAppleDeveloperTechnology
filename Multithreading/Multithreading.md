@@ -1,6 +1,8 @@
 # Multithreading in iOS
 iOS中的多线程编程
 
+Github: https://github.com/bobwongs/BWAppleDeveloperTechnology
+
 ## Contents
 
 - 多线程
@@ -13,7 +15,7 @@ iOS中的多线程编程
 
 ## 多线程
 
-为了避免在主线程中执行一些任务时可能会出现异常而卡死，我们可以把这些任务放到新的线程中进行执行，即使出现异常，主线程也依旧可以做取消操作的响应；同时，有时我们为了让用户拥有更好的体验，我们也常常把对界面、网络请求和应答等等的处理放到新的线程中进行，而不会因为有时很久的处理而让用户不能去操作其他只能够等待操作完成。
+通常，在iOS开发中，为了避免在主线程中执行一些复杂或者耗时的任务时可能会出现卡死，我们可以把这些任务放到新的线程中进行执行，在主线程中也依旧可以做取消操作的响应；同时，有时我们为了让用户拥有更好的体验，我们也常常把对界面、网络请求和应答等等的处理放到新的线程中进行，而不会因为有时很久的处理而让用户不能去操作其他只能够等待操作完成。
 
 **原子性Atomicity**
 你可能在属性声明时多次看到“nonatomic”。当你声明一个属性为原子性的，你通常用@synchronized block把它括起来，使它线程安全。当然，这个方法会增加些运行负载。
@@ -75,7 +77,7 @@ iOS使用**NSCondition**来进行线程同步，它是iOS的锁对象，用来�
 NSCondition *myLock = [[NSCondition alloc] init];
 [myLock lock];
 // 资源...
-[myLock unLock];
+[myLock unlock];
 ```
 
 **其他实用方法**
@@ -118,14 +120,142 @@ NSCondition *myLock = [[NSCondition alloc] init];
 
 ## GCD (Grand Central Dispatch)
 
+GCD是由语言特性，运行时库和系统增强包所提供的系统的和综合的提升，以支持在iOS和OS X上多核硬件上的并发；
+
+GCD 是 libdispatch 的市场名称，而 libdispatch 作为 Apple 的一个库，为并发代码在多核硬件（跑 iOS 或 OS X ）上执行提供有力支持。它具有以下优点：
+
+- GCD 能通过推迟昂贵计算任务并在后台运行它们来改善你的应用的响应性能；
+- GCD 提供一个易于使用的并发模型而不仅仅只是锁和线程，以帮助我们避开并发陷阱；
+- GCD 具有在常见模式（例如单例）上用更高性能的原语优化你的代码的潜在能力；
+
+**Dispatch Queue相关术语**
+
+> Main Queue：主队列，主队列不同于主线程，但是跟主线程紧密相关
+>
+> Global Queue：全局队列
+>
+> Serial Queue：串行队列，顺序执行队列中的Block，一个Block执行完之后，才会接着一个执行下一个Block
+>
+> Concurrent Queue：并发队列，并发执行队列中的Block，多个Block同时执行，执行的先后顺序取决于多线程实现的调度
+
+**GCD实用操作**
+
+**获得已存在的队列**
+
+```objective-c
+// Main Queue(Serial Queue)，主队列(串行队列)
+dispatch_queue_t main_queue = dispatch_get_main_queue();
+
+// Global Queue，全局队列，并发队列
+// Returns a system-defined global concurrent queue with the specified quality of service class.
+dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY, 0);
+```
+
+**创建新队列**
+
+```objective-c
+// Serial Queue(Block is excuted one by one in the same queue.)
+dispatch_queue_t serial_queue = dispatch_queue_create("com.bws.BWGCD.MySerialQueue", DISPATCH_QUEUE_SERIAL);
+
+// Concurrent Queue(Block is excuted concurrent in the same queue.)
+dispatch_queue_t concurrent_queue = dispatch_queue_create("com.bws.BWGCD.MyConcurrentQueue", DISPATCH_QUEUE_CONCURRENT);
+```
+
+**执行**
+
+异步 dispatch_async
+
+> Submits a block for asynchronous execution on a dispatch queue and returns immediately.
+> This function is the fundamental mechanism for submitting blocks to a dispatch queue. Calls to this function always return immediately after the block has been submitted and never wait for the block to be invoked. The target queue determines whether the block is invoked serially or concurrently with respect to other blocks submitted to that same queue. Independent serial queues are processed concurrently with respect to each other.
+
+同步 dispatch_sync
+
+> Submits a block object for execution on a dispatch queue and waits until that block completes.
+>
+> Submits a block to a dispatch queue for synchronous execution. Unlike [dispatch_async](apple-reference-documentation://hcVyOLxquW), this function does not return until the block has finished. Calling this function and targeting the current queue results in deadlock. 
+>
+> Unlike with `dispatch_async`, no retain is performed on the target queue. Because calls to this function are synchronous, it "borrows" the reference of the caller. Moreover, no `Block_copy` is performed on the block.
+>
+> As an optimization, this function invokes the block on the current thread when possible.
+
+示例
+
+```
+dispatch_async(queue, ^{
+	// Do something
+});
+```
+
+**其他**
+
+```
+dispatch_once
+dispatch_after
+等等
+```
+
+### OperationQueue
+
+在Mac OS X v10.6和iOS 4之前，NSOperation与NSOperationQueue是不同于GCD的，采用的是两种不同的机制。从Mac OS X v10.6和iOS 4开始，NSOperation与NSOperationQueue是在GCD之上构建的。作为一个非常普遍的规则，Apple建议使用最高级别的抽象，然后当测量结果表明需要时才下降到较低层次的API。
+
+**对比于GCD**
+
+- 提供了在 GCD 中不那么容易复制的有用特性；
+
+- 可以很方便的取消一个NSOperation的执行；
+
+- 可以更容易的添加任务的依赖关系；
+
+- 提供了任务的状态：isExecuteing, isFinished；
+
+  说明：提到的 “任务”，“操作” 即代表要再NSOperation中执行的事情；
+
+**NSOperation**
+
+- NSInvocationOperation是NSOperation的子类；
+- NSOperation是不能直接拿来调用的，使用其定义好的子类NSInvocationOperation或者自定义其子类重写main方法；
+
+**实用操作**
+
+```objective-c
+NSOperationQueue *queue = [[NSOperationQueue alloc] init];
+[queue addOperationWithBlock:^{
+    [self timeConsumingOperation];  // Add operation with block
+}];
 
 
-## OperationQueue
+// Block Operation
+NSBlockOperation *blockOperation = [NSBlockOperation blockOperationWithBlock:^{
+    [self timeConsumingOperation];
+}];
+[blockOperation addExecutionBlock:^{
+    // Do some thing
+}];
+[queue addOperation:blockOperation];
 
 
+// Invocation Operation
+NSInvocationOperation *invocationOperation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(timeConsumingOperation) object:nil];
+[queue addOperation:invocationOperation];
+
+
+// Operation in main queue
+[[NSOperationQueue mainQueue] addOperationWithBlock:^{
+    [self timeConsumingOperation];
+}];
+
+// Other
+queue.suspended = YES/NO;
+[queue cancelAllOperations];
+[operation cancel];
+```
 
 ## RunLoop
 
-
+待整理
 
 ## Reference
+
+《Threading Programming Guide》
+
+《Concurrency Programming Guide》

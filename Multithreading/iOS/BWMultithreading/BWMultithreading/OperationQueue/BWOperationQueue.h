@@ -10,4 +10,6 @@
 
 @interface BWOperationQueue : NSObject
 
+- (void)multithreading;
+
 @end

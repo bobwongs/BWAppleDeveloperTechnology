@@ -20,8 +20,14 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    BWNSThread *demoNSThread = [BWNSThread new];
-    [demoNSThread multithreading];
+//    BWNSThread *demoNSThread = [BWNSThread new];
+//    [demoNSThread multithreading];
+    
+//    BWGCD *demoGCD = [BWGCD new];
+//    [demoGCD multithreading];
+    
+    BWOperationQueue *demoOperationQueue = [BWOperationQueue new];
+    [demoOperationQueue multithreading];
     
     return YES;
 }

@@ -10,4 +10,6 @@
 
 @interface BWGCD : NSObject
 
+- (void)multithreading;
+
 @end

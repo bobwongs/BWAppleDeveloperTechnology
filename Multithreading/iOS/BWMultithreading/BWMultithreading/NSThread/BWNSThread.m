@@ -40,10 +40,13 @@ static int ticketCounts = 1000;
 }
 
 - (void)threadSelector1 {
+    NSCondition *condition = [[NSCondition alloc] init];
+    [condition lock];
     while (ticketCounts > 0) {
         ticketCounts -= 1;
         NSLog(@"second thread minus ticket, remain: %d", ticketCounts);
     }
+    [condition unlock];
 }
 
 - (void)threadSelector2 {
